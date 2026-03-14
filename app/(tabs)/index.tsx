@@ -1,165 +1,103 @@
-import React, { useState } from 'react';
-import {
-  StyleSheet,
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  FlatList,
-  KeyboardAvoidingView,
-  Platform,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import React from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, SafeAreaView } from 'react-native';
+import { Product, useStore } from '@/context/store-context';
 import { Ionicons } from '@expo/vector-icons';
 
-type Goal = {
-  id: string;
-  text: string;
-  isDone: boolean;
-};
+// Mock Product Data
+const MOCK_PRODUCTS: Product[] = [
+  {
+    id: '1',
+    name: 'Wireless Noise-Canceling Headphones',
+    price: 299.99,
+    description: 'Experience premium sound with active noise cancellation.',
+    image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500&q=80',
+  },
+  {
+    id: '2',
+    name: 'Minimalist Smartwatch',
+    price: 199.50,
+    description: 'Track your health and stay connected in style.',
+    image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500&q=80',
+  },
+  {
+    id: '3',
+    name: 'Ergonomic Mechanical Keyboard',
+    price: 145.00,
+    description: 'Boost your productivity with tactile typing.',
+    image: 'https://images.unsplash.com/photo-1595225476474-87563907a212?w=500&q=80',
+  },
+  {
+    id: '4',
+    name: 'Ultra-Portable Bluetooth Speaker',
+    price: 59.99,
+    description: 'Take your music anywhere with 24-hour battery life.',
+    image: 'https://images.unsplash.com/photo-1608043152269-423dbba4e7e1?w=500&q=80',
+  },
+  {
+    id: '5',
+    name: '4K Action Camera',
+    price: 349.00,
+    description: 'Capture your extreme adventures in stunning detail.',
+    image: 'https://images.unsplash.com/photo-1502920917128-1aa500764cbd?w=500&q=80',
+  },
+];
 
-export default function HomeScreen() {
-  const [goals, setGoals] = useState<Goal[]>([]);
-  const [inputText, setInputText] = useState('');
-  const [editingId, setEditingId] = useState<string | null>(null);
+export default function ShopScreen() {
+  const { addToCart, toggleWishlist, isInWishlist } = useStore();
 
-  const addOrUpdateGoal = () => {
-    if (inputText.trim() === '') return;
+  const renderProduct = ({ item }: { item: Product }) => {
+    const isWished = isInWishlist(item.id);
 
-    if (editingId) {
-      setGoals(
-        goals.map((goal) =>
-          goal.id === editingId ? { ...goal, text: inputText } : goal
-        )
-      );
-      setEditingId(null);
-    } else {
-      setGoals([
-        ...goals,
-        {
-          id: Date.now().toString(),
-          text: inputText,
-          isDone: false,
-        },
-      ]);
-    }
-    setInputText('');
-  };
+    return (
+      <View style={styles.productCard}>
+        <View style={styles.imageContainer}>
+          <Image source={{ uri: item.image }} style={styles.productImage} />
+          <TouchableOpacity 
+            style={styles.wishlistBtn}
+            onPress={() => toggleWishlist(item)}
+          >
+            <Ionicons 
+              name={isWished ? "heart" : "heart-outline"} 
+              size={24} 
+              color={isWished ? "#ff4444" : "#333"} 
+            />
+          </TouchableOpacity>
+        </View>
 
-  const deleteGoal = (id: string) => {
-    setGoals(goals.filter((goal) => goal.id !== id));
-    if (editingId === id) {
-      setEditingId(null);
-      setInputText('');
-    }
-  };
-
-  const toggleGoalStatus = (id: string) => {
-    setGoals(
-      goals.map((goal) =>
-        goal.id === id ? { ...goal, isDone: !goal.isDone } : goal
-      )
+        <View style={styles.productInfo}>
+          <Text style={styles.productName} numberOfLines={2}>{item.name}</Text>
+          <Text style={styles.productDesc} numberOfLines={2}>{item.description}</Text>
+          
+          <View style={styles.bottomRow}>
+            <Text style={styles.productPrice}>${item.price.toFixed(2)}</Text>
+            <TouchableOpacity 
+              style={styles.addToCartBtn}
+              onPress={() => addToCart(item)}
+            >
+              <Text style={styles.addToCartText}>Add to Cart</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
     );
   };
 
-  const startEdit = (goal: Goal) => {
-    setEditingId(goal.id);
-    setInputText(goal.text);
-  };
-
-  const cancelEdit = () => {
-    setEditingId(null);
-    setInputText('');
-  };
-
-  const renderGoalItem = ({ item }: { item: Goal }) => (
-    <View style={styles.goalItem}>
-      <TouchableOpacity
-        onPress={() => toggleGoalStatus(item.id)}
-        style={styles.checkbox}
-      >
-        {item.isDone ? (
-          <Ionicons name="checkmark-circle" size={24} color="#1D3D47" />
-        ) : (
-          <Ionicons name="ellipse-outline" size={24} color="#888" />
-        )}
-      </TouchableOpacity>
-      
-      <Text
-        style={[
-          styles.goalText,
-          item.isDone && styles.goalTextDone,
-        ]}
-      >
-        {item.text}
-      </Text>
-
-      <View style={styles.actions}>
-        <TouchableOpacity
-          onPress={() => startEdit(item)}
-          style={styles.actionButton}
-        >
-          <Ionicons name="pencil-outline" size={20} color="#1D3D47" />
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => deleteGoal(item.id)}
-          style={styles.actionButton}
-        >
-          <Ionicons name="trash-outline" size={20} color="#ff4444" />
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-
   return (
     <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView
-        style={styles.content}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        <View style={styles.header}>
-          <Text style={styles.title}>My Goals</Text>
-          <Text style={styles.subtitle}>
-            {goals.filter((g) => g.isDone).length} of {goals.length} completed
-          </Text>
-        </View>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Discover</Text>
+        <TouchableOpacity style={styles.searchBtn}>
+          <Ionicons name="search" size={24} color="#333" />
+        </TouchableOpacity>
+      </View>
 
-        <FlatList
-          data={goals}
-          renderItem={renderGoalItem}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContainer}
-          showsVerticalScrollIndicator={false}
-          ListEmptyComponent={
-            <Text style={styles.emptyText}>No goals yet. Add one below!</Text>
-          }
-        />
-
-        <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.input}
-            placeholder="What do you want to achieve?"
-            placeholderTextColor="#888"
-            value={inputText}
-            onChangeText={setInputText}
-            onSubmitEditing={addOrUpdateGoal}
-          />
-          {editingId ? (
-            <View style={styles.editButtons}>
-               <TouchableOpacity style={[styles.button, styles.cancelButton]} onPress={cancelEdit}>
-                 <Ionicons name="close" size={24} color="#fff" />
-               </TouchableOpacity>
-               <TouchableOpacity style={[styles.button, styles.updateButton]} onPress={addOrUpdateGoal}>
-                 <Ionicons name="checkmark" size={24} color="#fff" />
-               </TouchableOpacity>
-            </View>
-          ) : (
-            <TouchableOpacity style={styles.button} onPress={addOrUpdateGoal}>
-              <Ionicons name="add" size={24} color="#fff" />
-            </TouchableOpacity>
-          )}
-        </View>
-      </KeyboardAvoidingView>
+      <FlatList
+        data={MOCK_PRODUCTS}
+        renderItem={renderProduct}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.listContainer}
+        showsVerticalScrollIndicator={false}
+      />
     </SafeAreaView>
   );
 }
@@ -167,108 +105,99 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f7fa',
-  },
-  content: {
-    flex: 1,
+    backgroundColor: '#fff',
   },
   header: {
-    padding: 24,
-    paddingTop: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 20,
   },
-  title: {
+  headerTitle: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#1D3D47',
-    marginBottom: 4,
+    color: '#111',
   },
-  subtitle: {
-    fontSize: 16,
-    color: '#666',
+  searchBtn: {
+    padding: 8,
+    backgroundColor: '#f5f5f5',
+    borderRadius: 20,
   },
   listContainer: {
     paddingHorizontal: 20,
     paddingBottom: 20,
-    flexGrow: 1,
   },
-  goalItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  productCard: {
     backgroundColor: '#fff',
-    padding: 16,
     borderRadius: 16,
-    marginBottom: 12,
+    marginBottom: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 8,
+    borderWidth: 1,
+    borderColor: '#eee',
+    overflow: 'hidden',
+  },
+  imageContainer: {
+    position: 'relative',
+    height: 200,
+    backgroundColor: '#f8f8f8',
+  },
+  productImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  wishlistBtn: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    padding: 8,
+    borderRadius: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
-  checkbox: {
-    marginRight: 12,
+  productInfo: {
+    padding: 16,
   },
-  goalText: {
-    flex: 1,
-    fontSize: 16,
-    color: '#333',
+  productName: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#111',
+    marginBottom: 4,
   },
-  goalTextDone: {
-    textDecorationLine: 'line-through',
-    color: '#888',
+  productDesc: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 16,
+    lineHeight: 20,
   },
-  actions: {
+  bottomRow: {
     flexDirection: 'row',
-    gap: 12,
-  },
-  actionButton: {
-    padding: 4,
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    padding: 20,
-    paddingBottom: Platform.OS === 'ios' ? 20 : 20,
-    backgroundColor: '#fff',
-    borderTopWidth: 1,
-    borderTopColor: '#eee',
+    justifyContent: 'space-between',
     alignItems: 'center',
   },
-  input: {
-    flex: 1,
-    height: 50,
-    backgroundColor: '#f0f2f5',
-    borderRadius: 25,
+  productPrice: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#111',
+  },
+  addToCartBtn: {
+    backgroundColor: '#111',
     paddingHorizontal: 20,
-    fontSize: 16,
-    marginRight: 12,
-    color: '#333',
+    paddingVertical: 10,
+    borderRadius: 8,
   },
-  editButtons: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  button: {
-    width: 50,
-    height: 50,
-    backgroundColor: '#1D3D47',
-    borderRadius: 25,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#1D3D47',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  updateButton: {
-      backgroundColor: '#4CAF50'
-  },
-  cancelButton: {
-      backgroundColor: '#f44336'
-  },
-  emptyText: {
-    textAlign: 'center',
-    marginTop: 40,
-    color: '#888',
-    fontSize: 16,
+  addToCartText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 14,
   },
 });
